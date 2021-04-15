@@ -110,6 +110,15 @@ write.table(data_adult_ND, paste(dir,"input/secondary_input/GC_table_PN_NE_all_m
 write.table(meta_adult_new_ND, paste(dir,"input/secondary_input/Metadata_PN_all_for_manuscript_ND.tsv",sep=""))
 ```
 
+```{r Set directory}
+rm(list=ls())
+dir <- "/Users/darmanis/Desktop/Neuroendocrine/Neuroendocrine_SCRNAseq/"
+```
 
+Load data with doublets REMOVED
+```{r Load data}
+data_adult <- read.table(paste(dir,"input/secondary_input/GC_table_PN_NE_all_manuscript_after_Scrublet_ND.tsv",sep=""))
+meta_adult_new <- read.table(paste(dir,"input/secondary_input/Metadata_PN_all_for_manuscript_ND.tsv",sep=""))
+```
 
 
