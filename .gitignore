@@ -6,3 +6,4 @@
 *.tsv
 *largefile*
 *.RData
+.DS_Store
