@@ -1,0 +1,140 @@
+---
+title: "NE04_Create_Seurat_cluster_and_annotate"
+author: "Spyros Darmanis"
+date: "3/12/2019"
+output: html_document
+---
+
+Load libraries
+```{r setup, include=FALSE}
+library(useful)
+library(Seurat)
+library(dplyr)
+library(Matrix)
+library(ontologyIndex)
+require(corrplot)
+require(GGally)
+require(reshape)
+require(gplots)
+```
+
+Set directory
+This is used to save within the repo
+All paths can be changed accordingly
+```{r Set directory}
+# rm(list=ls())
+dir <- "/Users/darmanis/Desktop/Neuroendocrine/Neuroendocrine_SCRNAseq/"
+```
+
+Run the following chuck if you want ALL cells (+additional datasets) cells doublets excluded from the NE dataset
+Load data 
+```{r Load data}
+data_adult <- read.table(paste(dir,"input/secondary_input/GC_table_ALL_datasets_ND.tsv",sep=""))
+meta_adult_new <- read.table(paste(dir,"input/secondary_input/Metadata_ALL_datasets_ND.tsv",sep=""))
+```
+
+
+Create Seurat object of whichever dataset you decided to use
+```{r create Seurat}
+require(Seurat)
+tiss <- CreateSeuratObject(counts = data_adult, project = "NE_Lung", meta.data = meta_adult_new, display.progress = T)
+tiss <- AddMetaData(object = tiss, metadata = meta_adult_new)
+# save(tiss, file = paste(dir,"input/NE_Lung_Seurat.RData",sep=""))
+tiss
+```
+
+
+Filter the dataset and preprocess 
+Filtering on 1000 genes minimum and 50000 reads minimum per cell 
+```{r Filter}
+tiss <- subset(tiss, subset = nCount_RNA > 50000 & nFeature_RNA > 1000)
+#VlnPlot(tiss, features = c("nFeature_RNA", "nCount_RNA"), ncol = 3)
+tiss
+```
+
+Preprocess data 
+```{r echo = T, results = 'hide'}
+tiss <- NormalizeData(object = tiss, normalization.method = "LogNormalize", 
+    scale.factor = 1000000)
+tiss <- ScaleData(object = tiss, do.scale = T, do.center = T)
+```
+
+Find variable genes
+```{r Feature selection}
+tiss <- FindVariableFeatures(object = tiss, do.plot = TRUE, x.high.cutoff = Inf, y.cutoff = 1, num.bin = 20, binning.method = "equal_width", do.recalc = T, x.low.cutoff=1)
+```
+
+Perform PCA
+```{r PCA analysis}
+tiss <- RunPCA(object = tiss, do.print = FALSE)
+print(tiss[["pca"]], dims = 1:5, nfeatures = 5)
+
+```
+
+```{r PCA analysis}
+VizDimLoadings(tiss, dims = 1:2, reduction = "pca")
+```
+
+```{r PCA analysis}
+DimPlot(tiss, reduction = "pca")
+```
+
+```{r PCA analysis}
+ElbowPlot(tiss)
+```
+
+Visualize top genes across principal components
+```{r Visualize top PCA genes}
+DimHeatmap(object = tiss, dims = 1:5, cells = 100, balanced = TRUE)
+```
+
+Perform correlation of PCs and metadata fields
+```{r Correlation of PC coordiantes to metadata fields}
+# pca.obj <- tiss@dr$pca
+# pc.coords <- pca.obj@cell.embeddings
+# df1 <- tiss@meta.data[,c("nGene","nUMI")]
+# df2 <- pc.coords[,c(1:10)]
+# cordf12 <- cor(df1,df2)
+# # Make a correlation plot
+# corrplot(cordf12, method = "number", main="Correlation of PCs and metadata")
+```
+
+Set resolution and perform clustering
+```{r choose resolution}
+tiss <- FindNeighbors(tiss, dims = 1:10)
+tiss <- FindClusters(tiss, resolution = 0.3)
+```
+
+Perform  tSNE
+```{r}
+set.seed(123)
+tiss <- RunTSNE(object = tiss, dims.use = 1:10, seed.use = 10, perplexity=30)
+```
+
+Visualize TSNE colored by cluster
+```{r}
+TSNEPlot(object = tiss)
+```
+
+Plot the fraction of each dataset in each
+```{r}
+tab.1 <- table(tiss@meta.data$dataset,tiss@meta.data$RNA_snn_res.0.3)
+balloonplot(tab.1)
+```
+
+
+Color by a gene. Feature plot
+```{r}
+FeaturePlot(tiss, c("Ascl1", "Epcam", "zsGreen_transgene"))
+```
+
+Color by a gene. Dot plot 
+```{r}
+#DotPlot(tiss, c("Ascl1", "Epcam", "zsGreen_transgene"))
+```
+
+
+Save object 
+```{r}
+save(tiss,file=paste(dir,"input/R_objects/All_datasets_ND.RData",sep=""))
+```

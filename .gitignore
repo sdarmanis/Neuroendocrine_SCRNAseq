@@ -1,0 +1,8 @@
+/input
+/old_input
+/secondary_input
+/scrublet
+/master_input
+*.tsv
+*largefile*
+*.RData
